@@ -91,7 +91,7 @@ import java.util.TimeZone;
 	  public static void main(String[] args) {
 	    try {
 	    	
-	    	System.out.println("Ics synchronizer, ver 2016.11.05");
+	    	System.out.println("Ics Synchronizer, ver 2016.11.05");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
 	    	
     		System.out.println("Parameter count "+args.length );	    			    	
