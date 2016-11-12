@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 /**
- * Main class of the project. This class uploads ISC files from given folder into Google Calendar
+ * Main class of the project. This class uploads ICS files from given folder into Google Calendar
  * 
  * There are two instances of class CalendarItem:
  * - googleCalendars
