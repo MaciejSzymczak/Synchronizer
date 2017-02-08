@@ -3,9 +3,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.CRC32;
 
 import com.google.api.client.util.Lists;
 import com.google.api.services.calendar.model.Calendar;
@@ -21,7 +23,9 @@ import com.google.api.services.calendar.model.Calendar;
 public class ReadDirectory {
 
 	static Map calendars = new HashMap();
-	final File folder;
+	final String pathName;
+	final String processedPathName;
+	String currentFileName;
 	
 	public static void readFile (String FileName) throws IOException {
 		FileInputStream fstream = new FileInputStream(FileName);
@@ -73,20 +77,80 @@ public class ReadDirectory {
 		br.close();
 	}
 	
-	public void readIcsFilesFromFolder(final File folder) throws IOException {
-	    for (final File fileEntry : folder.listFiles()) {
+	public static long checksumInputStream(String filepath) throws IOException {
+		InputStream inputStreamn = new FileInputStream(filepath);
+		CRC32 crc = new CRC32();
+		int cnt;
+		while ((cnt = inputStreamn.read()) != -1) {
+			crc.update(cnt);
+		}
+		inputStreamn.close();
+		return crc.getValue();
+	}	
+	
+	public void readOneIcsFilesFromFolder(final File folder) throws IOException {
+	    //delete files already processed
+		for (File fileEntry : folder.listFiles()) {
 	        if (fileEntry.isDirectory()) {
-	        	readIcsFilesFromFolder(fileEntry);
+	        	//do not process subfolders
+	        	//readIcsFilesFromFolder(fileEntry);
 	        } else {	        	
-	            //System.out.println(folder.getPath()+fileEntry.getName());
-	            if (fileEntry.getName().endsWith(".ics"))
-	                readFile(folder.getPath()+"\\"+fileEntry.getName());
+	            System.out.println(folder.getPath()+fileEntry.getName());
+	            if (fileEntry.getName().endsWith(".ics")) {
+	            	//Ignore identical file
+	                currentFileName = fileEntry.getName();
+	            	File processedFile = new File(processedPathName+currentFileName);
+	            	if (processedFile.exists() && checksumInputStream(processedPathName+fileEntry.getName()) == checksumInputStream(pathName+fileEntry.getName())) {
+		            //if (processedFile.exists() ) {
+	            		System.out.println("Ignore file because is identical:" + currentFileName);
+	            		fileEntry.delete();
+	            	}
+	            }   
+	        }
+	    }
+    	currentFileName = null;
+
+		//actual processing
+	    for (File fileEntry : folder.listFiles()) {
+	        if (fileEntry.isDirectory()) {
+	        	//do not process subfolders
+	        	//readIcsFilesFromFolder(fileEntry);
+	        } else {	        	
+	            System.out.println(folder.getPath()+fileEntry.getName());
+	            if (fileEntry.getName().endsWith(".ics")) {
+	            	//Ignore identical file
+	                currentFileName = fileEntry.getName();
+	                readFile(folder.getPath()+"\\"+currentFileName);
+	                //return causes only one file from the folder is taken
+	                return;
+	            }   
 	        }
 	    }
 	}
+
+	
+	public void readIcsFilesFromFolder(final File folder) throws IOException {
+		//actual processing
+	    for (File fileEntry : folder.listFiles()) {
+	        if (fileEntry.isDirectory()) {
+	        	//do not process subfolders
+	        	//readIcsFilesFromFolder(fileEntry);
+	        } else {	        	
+	            System.out.println(folder.getPath()+fileEntry.getName());
+	            if (fileEntry.getName().endsWith(".ics")) {
+	            	//Ignore identical file
+	                currentFileName = fileEntry.getName();
+	                readFile(folder.getPath()+"\\"+currentFileName);
+	            }   
+	        }
+	    }
+	}	
+	
 	
     ReadDirectory(String folderName) {
-		folder = new File(folderName);
+    	pathName = folderName + "\\\\";
+    	processedPathName = folderName + "\\\\processed\\\\";
+		//folder = new File(folderName);
     }
 	
 }

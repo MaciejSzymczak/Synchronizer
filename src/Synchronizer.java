@@ -25,10 +25,12 @@ import com.google.api.services.calendar.model.Event;
 	import com.google.api.services.calendar.model.EventDateTime;
 	import com.google.api.services.calendar.model.Events;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-	import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.security.acl.AclEntry;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -38,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.zip.CRC32;
 
 /**
  * Main class of the project. This class uploads ICS files from given folder into Google Calendar
@@ -91,7 +94,7 @@ import java.util.TimeZone;
 	  public static void main(String[] args) {
 	    try {
 	    	
-	    	System.out.println("Ics Synchronizer, ver 2016.11.05");
+	    	System.out.println("Cello, ver 2017.02.07");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
 	    	
     		System.out.println("Parameter count "+args.length );	    			    	
@@ -102,28 +105,24 @@ import java.util.TimeZone;
             String client_secrets = "";
 	    	String actionName = "";
 	    	String folderName = "";
-	    	Boolean mockMode = false;
+	    		    	
+
+	    	if (args.length==0) {
+	    		System.out.println("Usage: java cello.jar json uploadIcs <folder name>");
+	    		System.out.println("   or  java cello.jar json deleteCalendars");
+	    		System.exit(1);
+	    	}
+	    	client_secrets = args[0];
+	    	actionName = args[1];
+	    	if (actionName.equals("uploadIcs"))
+	        	folderName = args[2];
+
 	    	
-	    	if (args.length==0 && getComputerName().equals("LAPTOP-S6GP7AMU")) {
-	    		mockMode = true;
-	    		client_secrets = "C:\\Users\\Maciek\\Desktop\\tests\\client_secrets.json";
-		    	actionName = "uploadIcs"; //uploadIcs or deleteCalendars
-		    	folderName = "C:\\Users\\Maciek\\planowanie\\documents\\Semestry";
-	    	}	    
-	    	
-	    	if (!mockMode) {
-		    	if (args.length==0) {
-		    		System.out.println("Usage: java uploadIcs synchronize <folder name>");
-		    		System.out.println("   or  java deleteCalendars");
-		    		System.exit(1);
-		    	}
-		    	client_secrets = args[0];
-		    	actionName = args[1];
-		    	if (actionName.equals("uploadIcs"))
-		        	folderName = args[2];
-	    	}	
-	    	
-	    	//Login to Google cloud
+			//create subfolder processed
+			File folder = new File(folderName+"\\processed");
+			if(!folder.exists()) if(folder.mkdir());
+
+			//Login to Google cloud
 			httpTransport = GoogleNetHttpTransport.newTrustedTransport();
 			dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
 			Credential credential = authorize(client_secrets);
@@ -138,14 +137,14 @@ import java.util.TimeZone;
 				System.exit(0);
 			}
 
-			System.out.println("Ics synchronizer");
+			System.out.println("Cello");
 			
 			readGoogleCalendars();
 			
 		    //Read Ics calendars
 			System.out.println("Loading ics calendars...");
 			ReadDirectory ics = new ReadDirectory(folderName);				
-			ics.readIcsFilesFromFolder(ics.folder);
+			ics.readOneIcsFilesFromFolder( new File(folderName) );
 			
 			//this procedure also gets GoogleEvents
 			AddGoogleCalendars(ics);
@@ -181,8 +180,23 @@ import java.util.TimeZone;
 					}
 				}
 			}
+						
+			//move processed file to folder processed
+			if (ics.currentFileName != null) {
+				File afile =new File(folderName +  "\\" + ics.currentFileName);
+				File processedFile = new File(folderName +  "\\processed\\" + ics.currentFileName);
+				if (processedFile.exists()) { processedFile.delete(); } 
+		    	afile.renameTo(new File(folderName +  "\\processed\\" + ics.currentFileName));			
+			    System.out.println("File processed:" + ics.currentFileName);
+			    
+			} else {
+			    System.out.println("No files to process");					
+			}
 			
-			tableofContents(ics, folderName+"\\ListOfCalendars.html");
+			
+			ReadDirectory icsProcessed = new ReadDirectory(folderName+  "\\processed");				
+			icsProcessed.readIcsFilesFromFolder( new File(folderName+  "\\processed") );			
+			tableofContents(icsProcessed, folderName+"\\ListOfCalendars.html");
 			
 	    } catch (IOException e) {
 	      System.err.println(e.getMessage());
@@ -283,15 +297,21 @@ import java.util.TimeZone;
 	  private static void tableofContents(ReadDirectory ics, String fileName) throws IOException {
 		  FileWriter fw = new FileWriter(fileName);
 		  
-		  System.out.println( String.format("Creating file %s...",fileName));	
-		  fw.write("<!DOCTYPE html>\n<html lang=\"pl\">\n<body>\n");
+		  System.out.println( String.format("Creating file %s...",fileName));		  
+
+		  fw.write("<!DOCTYPE html>\n<html lang=\"pl\">\n<HEAD><META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=utf-8\"></HEAD>\n<body>\n");
 		  fw.write("<h1 style=\"font-variant: small-caps; text-align: center; color: white; background-color: black; \">Lista kalendarzy do zaimportowania do Twojego kalendarza Google</h1>"); 
 		  fw.write(String.format("<a href=\"%s\">%s</a><br/><br/>\n", "https://support.google.com/a/users/answer/178357?hl=pl", "Dodawanie kalendarza udostępnionego przez inną osobę"));
 		  
 		  fw.write("<table  border=\"1\" width=\"80%\" style=\"font-variant: small-caps; border: 1px dashed silver\">\n");
 		  for(Object entry: ics.calendars.keySet()) {
 				String calName = (String)entry;
-				String calendarId = ((CalendarItem)googleCalendars.get(calName)).calendarId;
+				String calendarId= "***Calendar not found***";
+				try {
+					calendarId = ((CalendarItem)googleCalendars.get(calName)).calendarId;
+				} catch (Exception e) {}
+				if ((calendarId+"").length()==0) 
+					calendarId= "***Calendar not found***";
 				fw.write("<tr><td>");
 				fw.write(String.format("<a href=\"https://calendar.google.com/calendar/ical/%s/public/basic.ics\">%s</a>", calendarId, calName));
 				fw.write("</td><td>");
@@ -342,6 +362,8 @@ import java.util.TimeZone;
 		  }
 		  */		  
 		  	  
+
+	  
 		private static String getComputerName()
 		{
 		    Map<String, String> env = System.getenv();
