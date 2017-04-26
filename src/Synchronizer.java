@@ -57,9 +57,8 @@ import java.util.zip.CRC32;
 
 	public class Synchronizer {
 
-	  private static final String APPLICATION_NAME = "";
-	  private static final java.io.File DATA_STORE_DIR =
-	      new java.io.File(System.getProperty("user.home"), ".store/calendar_sample");
+	  private static final String APPLICATION_NAME = "Calendar";
+	  private static java.io.File DATA_STORE_DIR;
 	  private static FileDataStoreFactory dataStoreFactory;
 	  private static HttpTransport httpTransport;
 	  private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
@@ -74,6 +73,7 @@ import java.util.zip.CRC32;
 		FileInputStream fis = new FileInputStream(client_secrets);
 	    GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
 	        new InputStreamReader(fis)); //CalendarExample.class.getResourceAsStream("/client_secrets.json") 
+	    System.out.println(clientSecrets.getDetails());
 	    if (clientSecrets.getDetails().getClientId().startsWith("Enter")
 	        || clientSecrets.getDetails().getClientSecret().startsWith("Enter ")) {
 	      System.out.println(
@@ -82,17 +82,23 @@ import java.util.zip.CRC32;
 	      System.exit(1);
 	    }
 	    // set up authorization code flow
+    
 	    GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
 	        httpTransport, JSON_FACTORY, clientSecrets,
 	        Collections.singleton(CalendarScopes.CALENDAR)).setDataStoreFactory(dataStoreFactory)
 	        .build();
 	    // authorize
 	    LocalServerReceiver lsr  = new LocalServerReceiver();
+	    //System.out.println(new AuthorizationCodeInstalledApp(flow, lsr).getReceiver().toString());
+	    
 	    return new AuthorizationCodeInstalledApp(flow, lsr).authorize("user"); 
 	  }
 
 	  public static void main(String[] args) {
 	    try {
+	    	
+	    	System.out.println( System.getProperty("user.home") );
+
 	    	
 	    	System.out.println("Cello, ver 2017.02.07");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
@@ -124,6 +130,13 @@ import java.util.zip.CRC32;
 
 			//Login to Google cloud
 			httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+			
+			//set DATA_STORE_DIR = name of the json file
+			int index = client_secrets.lastIndexOf("\\");
+			String storageFolderName = client_secrets.substring(index+1, client_secrets.lastIndexOf("."));			
+			System.out.println("DATA_STORE_DIR=" + System.getProperty("user.home")+ ".store/" + storageFolderName);			
+			DATA_STORE_DIR = new java.io.File(System.getProperty("user.home"), ".store/" + storageFolderName );
+
 			dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
 			Credential credential = authorize(client_secrets);
 			client = new com.google.api.services.calendar.Calendar.Builder(
@@ -136,8 +149,6 @@ import java.util.zip.CRC32;
 				System.out.println("Done");
 				System.exit(0);
 			}
-
-			System.out.println("Cello");
 			
 			readGoogleCalendars();
 			
@@ -198,8 +209,8 @@ import java.util.zip.CRC32;
 			icsProcessed.readIcsFilesFromFolder( new File(folderName+  "\\processed") );			
 			tableofContents(icsProcessed, folderName+"\\ListOfCalendars.html");
 			
-	    } catch (IOException e) {
-	      System.err.println(e.getMessage());
+	    //} catch (IOException e) {
+	    //  System.err.println(e.getMessage());
 	    } catch (Throwable t) {
 	      t.printStackTrace();
 	    }
@@ -239,6 +250,7 @@ import java.util.zip.CRC32;
 	  }
 
 	  private static void readGoogleCalendars() throws IOException {
+		    
 		    CalendarList feed = client.calendarList().list().execute();
 		    if (feed.getItems() != null) {
 		        for (CalendarListEntry entry : feed.getItems()) {
