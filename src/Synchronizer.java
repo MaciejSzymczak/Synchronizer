@@ -312,8 +312,22 @@ import java.util.zip.CRC32;
 		  System.out.println( String.format("Creating file %s...",fileName));		  
 
 		  fw.write("<!DOCTYPE html>\n<html lang=\"pl\">\n<HEAD><META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=utf-8\"></HEAD>\n<body>\n");
+		  
+		  //like
+		  fw.write("<div id=\"fb-root\"></div>\n");
+		  fw.write("<script>// <![CDATA[\n");
+		  fw.write("(function(d, s, id) {\n");
+		  fw.write("  var js, fjs = d.getElementsByTagName(s)[0];\n");
+		  fw.write("  if (d.getElementById(id)) return;\n");
+		  fw.write("  js = d.createElement(s); js.id = id;\n");
+		  fw.write("  js.src = \"//connect.facebook.net/pl_PL/all.js#xfbml=1&version=v2.5\";\n");
+		  fw.write("  fjs.parentNode.insertBefore(js, fjs);\n");
+		  fw.write("}(document, 'script', 'facebook-jssdk'));\n");
+		  fw.write("// ]]></script>\n");
+		  fw.write("<div class=\"fb-like\" data-href=\"https://www.facebook.com/Plansoft.org\" data-layout=\"standard\" data-action=\"like\" data-show-faces=\"true\" data-share=\"true\"></div>\n");
+		  		  
 		  fw.write("<h1 style=\"font-variant: small-caps; text-align: center; color: white; background-color: black; \">Lista kalendarzy do zaimportowania do Twojego kalendarza Google</h1>"); 
-		  fw.write(String.format("<a href=\"%s\">%s</a><br/><br/>\n", "https://support.google.com/a/users/answer/178357?hl=pl", "Dodawanie kalendarza udostępnionego przez inną osobę"));
+		  fw.write(String.format("<a href=\"%s\">%s</a><br/><br/>\n", "http://plansoft.org/Sciaga.JakWyswietlicKalendarz.pdf", "W jaki sposób mogę pobrać kalendarz?"));
 		  
 		  fw.write("<table  border=\"1\" width=\"80%\" style=\"font-variant: small-caps; border: 1px dashed silver\">\n");
 		  for(Object entry: ics.calendars.keySet()) {
