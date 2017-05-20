@@ -71,7 +71,8 @@ public class ReadDirectory {
 		  if (isct.key.equals("END") && isct.value.equals("VEVENT"))  {
 			  ClassItem icsClass = new ClassItem(dtStart,dtEnd,description,location,summary,"n/a");
 			  ((CalendarItem)calendars.get(calName)).classItems.put(icsClass.key, icsClass);
-			  System.out.println("    Loading Event ["+calName+"] "+icsClass.key);		  
+			  //System.out.println("    Loading Event ["+calName+"] "+icsClass.key);	
+			  System.out.print(".");
 		  }		  
 		}
 		br.close();
@@ -89,20 +90,20 @@ public class ReadDirectory {
 	}	
 	
 	public void readOneIcsFilesFromFolder(final File folder) throws IOException {
-	    //delete files already processed
+        System.out.println("    Deleting files already processed");
 		for (File fileEntry : folder.listFiles()) {
 	        if (fileEntry.isDirectory()) {
 	        	//do not process subfolders
 	        	//readIcsFilesFromFolder(fileEntry);
 	        } else {	        	
-	            System.out.println(folder.getPath()+fileEntry.getName());
 	            if (fileEntry.getName().endsWith(".ics")) {
+		            System.out.println("        "+folder.getPath()+"\\"+fileEntry.getName());
 	            	//Ignore identical file
 	                currentFileName = fileEntry.getName();
 	            	File processedFile = new File(processedPathName+currentFileName);
 	            	if (processedFile.exists() && checksumInputStream(processedPathName+fileEntry.getName()) == checksumInputStream(pathName+fileEntry.getName())) {
 		            //if (processedFile.exists() ) {
-	            		System.out.println("Ignore file because is identical:" + currentFileName);
+	            		System.out.println("        Ignore this file because is identical:" + currentFileName);
 	            		fileEntry.delete();
 	            	}
 	            }   
@@ -110,14 +111,14 @@ public class ReadDirectory {
 	    }
     	currentFileName = null;
 
-		//actual processing
+        System.out.println("    Actual processing");
 	    for (File fileEntry : folder.listFiles()) {
 	        if (fileEntry.isDirectory()) {
 	        	//do not process subfolders
 	        	//readIcsFilesFromFolder(fileEntry);
 	        } else {	        	
-	            System.out.println(folder.getPath()+fileEntry.getName());
 	            if (fileEntry.getName().endsWith(".ics")) {
+		            System.out.println("        "+folder.getPath()+fileEntry.getName());
 	            	//Ignore identical file
 	                currentFileName = fileEntry.getName();
 	                readFile(folder.getPath()+"\\"+currentFileName);
@@ -136,7 +137,7 @@ public class ReadDirectory {
 	        	//do not process subfolders
 	        	//readIcsFilesFromFolder(fileEntry);
 	        } else {	        	
-	            System.out.println(folder.getPath()+fileEntry.getName());
+	            //System.out.println(folder.getPath()+fileEntry.getName());
 	            if (fileEntry.getName().endsWith(".ics")) {
 	            	//Ignore identical file
 	                currentFileName = fileEntry.getName();

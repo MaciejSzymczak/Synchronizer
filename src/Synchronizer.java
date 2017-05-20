@@ -100,7 +100,7 @@ import java.util.zip.CRC32;
 	    	System.out.println( System.getProperty("user.home") );
 
 	    	
-	    	System.out.println("Cello, ver 2017.02.07");
+	    	System.out.println("Cello, ver 2017.05.19");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
 	    	
     		System.out.println("Parameter count "+args.length );	    			    	
@@ -114,15 +114,31 @@ import java.util.zip.CRC32;
 	    		    	
 
 	    	if (args.length==0) {
-	    		System.out.println("Usage: java cello.jar json uploadIcs <folder name>");
-	    		System.out.println("   or  java cello.jar json deleteCalendars");
+	    		System.out.println("Usage: java cello.jar uploadIcs json folderName");
+	    		System.out.println("   or  java cello.jar deleteCalendars json ");
+	    		System.out.println("   or  java cello.jar status folderName");
 	    		System.exit(1);
 	    	}
-	    	client_secrets = args[0];
-	    	actionName = args[1];
+	    	actionName = args[0];
+
+	    	if (actionName.equals("uploadIcs") || actionName.equals("deleteCalendars"))
+		    	client_secrets = args[1];
+
 	    	if (actionName.equals("uploadIcs"))
 	        	folderName = args[2];
 
+	    	if (actionName.equals("status"))
+	        	folderName = args[1];
+
+	    	
+			if (actionName.equals("status")) {
+				System.out.println("Preparing Status");
+				Status s = new Status();
+				s.ReadFolderTree( new File(folderName) );
+				s.Display(folderName+"\\status.xml");
+				System.out.println("Done");
+				System.exit(0);
+			} 	
 	    	
 			//create subfolder processed
 			File folder = new File(folderName+"\\processed");
@@ -279,7 +295,8 @@ import java.util.zip.CRC32;
 				    			,googleEvent.getSummary()
 				    			,googleEvent.getId()
 				    			);
-				    	System.out.println("    Loading Event ["+calName+"] "+googleClass.key);
+				    	//System.out.println("    Loading Event ["+calName+"] "+googleClass.key);
+				    	System.out.print("@");
 						((CalendarItem)googleCalendars.get(calName)).classItems.put(googleClass.key, googleClass);
 				    }					    
 				} else {
