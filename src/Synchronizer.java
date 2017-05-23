@@ -121,7 +121,7 @@ import java.util.zip.CRC32;
 	    	}
 	    	actionName = args[0];
 
-	    	if (actionName.equals("uploadIcs") || actionName.equals("deleteCalendars"))
+	    	if (actionName.equals("uploadIcs") || actionName.equals("deleteCalendars") || actionName.equals("readGoogleCalendars") ) 
 		    	client_secrets = args[1];
 
 	    	if (actionName.equals("uploadIcs"))
@@ -166,6 +166,13 @@ import java.util.zip.CRC32;
 				System.exit(0);
 			}
 			
+			//tests
+			if (actionName.equals("readGoogleCalendars")) {
+				readGoogleCalendars();
+				System.out.println("Done");
+				System.exit(0);
+			}
+
 			readGoogleCalendars();
 			
 		    //Read Ics calendars
@@ -267,15 +274,31 @@ import java.util.zip.CRC32;
 
 	  private static void readGoogleCalendars() throws IOException {
 		    
-		    CalendarList feed = client.calendarList().list().execute();
-		    if (feed.getItems() != null) {
-		        for (CalendarListEntry entry : feed.getItems()) {
-		          //System.out.println( entry.getSummary());
-				  CalendarItem ci = new CalendarItem();
-				  ci.calendarId = entry.getId();
-		          googleCalendars.put(entry.getSummary(), ci);
-		        }
-		      }		    		  
+           		  
+		    CalendarList feed = client.calendarList().list().setMaxResults(250).execute();
+		    Boolean inLoop = true;
+		    
+		    //System.out.println("*** before loop");
+		    while (inLoop) {
+			    if (feed.getItems() != null) {
+			        for (CalendarListEntry entry : feed.getItems()) {
+			          //System.out.println( "Calendar: " + entry.getSummary());
+					  CalendarItem ci = new CalendarItem();
+					  ci.calendarId = entry.getId();
+			          googleCalendars.put(entry.getSummary(), ci);
+			        }
+			      }	
+			    
+			    System.out.println("*** feed.getNextPageToken:" + feed.getNextPageToken() );			    
+			    if (feed.getNextPageToken() !=null) {
+			    	feed = client.calendarList().list().setPageToken(feed.getNextPageToken()).setMaxResults(250).execute();
+				    inLoop = true;
+			    } else {
+			    	inLoop = false;
+			    }
+			//try {Thread.sleep(4000);} catch (InterruptedException e) {}    
+		    }
+		    //System.out.println("*** after loop");
 	  }
 	  
 	  private static void AddGoogleCalendars(ReadDirectory ics) throws IOException {
