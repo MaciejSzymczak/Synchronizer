@@ -355,7 +355,7 @@ import java.util.zip.CRC32;
 		  fw.write("var data = [\n");
 		  for(Object entry: ics.calendars.keySet()) {
 				String calName = (String)entry;
-				String calendarId= "***Calendar not found***";
+				String calendarId= "*** Calendar not found ***";
 				try {
 					calendarId = ((CalendarItem)googleCalendars.get(calName)).calendarId;
 				} catch (Exception e) {}
