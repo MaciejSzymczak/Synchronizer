@@ -1,5 +1,8 @@
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -26,29 +29,13 @@ public class tests {
 	
 	public static void main(String[] args) throws IOException, ParseException {
 
-		ISOStringToEventDateTime("20161019T153000Z");
-		
-		
-		
-		//Test: IcsTokenizer
-		//IcsTokenizer isct = new IcsTokenizer("X-WR-CALNAME:xx");
-		//System.out.println ("key="+isct.key);
-		//System.out.println ("value="+isct.value);
-	
-		
-		//DateFormat df = new SimpleDateFormat("yyyyMMdd hhmm");
-		//Date x = df.parse("20161124T1340".replaceAll("T", " "));
-		////DateTime dt = new DateTime(x, TimeZone.getTimeZone("UTC"));
-		//DateTime dt = new DateTime(x);
-		//System.out.println(dt.toStringRfc3339().replace("-","").replace(":", "").substring(0, 13));		
-		
-		//Test: ReadDirectory
-		//ReadDirectory rd = new ReadDirectory("C:\\Users\\Maciek\\planowanie\\documents\\Semestry");				
-		//rd.readIcsFilesFromFolder(rd.folder);
-		//list calendars
-		//for(Object x: rd.calendars.keySet()) {
-		//	System.out.println((String)x);
-		//}	
+		FileInputStream fstream = new FileInputStream("C:/Users/Maciek/Planowanie/documents/Semestry/GRUPA_CW_2.ics");
+		BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+		String strLine;
+		while ((strLine = br.readLine()) != null)   {
+			  System.out.print(strLine.replace("\\r\\n", "\r\n")+"\r\n"+"a kuku");
+		}
+		br.close();
 		
 		
 	}

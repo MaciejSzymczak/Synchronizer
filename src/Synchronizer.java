@@ -100,7 +100,7 @@ import java.util.zip.CRC32;
 	    	System.out.println( System.getProperty("user.home") );
 
 	    	
-	    	System.out.println("Cello, ver 2017.05.19");
+	    	System.out.println("Cello, ver 2019.04.12");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
 	    	
     		System.out.println("Parameter count "+args.length );	    			    	
@@ -272,7 +272,7 @@ import java.util.zip.CRC32;
 		      }		    		  
 	  }
 
-	  private static void readGoogleCalendars() throws IOException {
+	  private static void readGoogleCalendars() throws IOException  {
 		    
            		  
 		    CalendarList feed = client.calendarList().list().setMaxResults(250).execute();
@@ -326,7 +326,7 @@ import java.util.zip.CRC32;
 					System.out.println("Addding calendar "+calName);	
 				    Calendar newEntry = new Calendar();
 				    newEntry.setSummary(calName);
-				    newEntry.setDescription("Kalendarz został utworzony za pomocą www.Plansoft.org\nCalendar has been created by www.Plansoft.org");
+				    newEntry.setDescription("Kalendarz został utworzony za pomocą Plansoft.org\nCalendar has been created by Plansoft.org");
 				    newEntry.setTimeZone(  ((CalendarItem)ics.calendars.get(calName)).TzId  ); 
 				   //client.acl().insert(calendarId, content)
 				    Calendar result = client.calendars().insert(newEntry).execute();
@@ -361,7 +361,7 @@ import java.util.zip.CRC32;
 				} catch (Exception e) {}
 				if ((calendarId+"").length()==0) 
 					calendarId= "***Calendar not found***";
-				fw.write(String.format("%s{ calendarName: '%s', link: 'https://calendar.google.com/calendar/ical/%s/public/basic.ics' }", separator, calName, calendarId ));
+				fw.write(String.format("%s{ calendarName: '%s', link: 'https://calendar.google.com/calendar/ical/%s/public/basic.ics', calendarId: '%s' }", separator, calName, calendarId, calendarId ));
 				separator=",";
 				}		  
 		  fw.write("];");

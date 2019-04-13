@@ -64,7 +64,7 @@ public class ReadDirectory {
 		  if (isct.key.equals("TZID"))  TzId = isct.value;
 		  if (isct.key.equals("DTSTART"))  dtStart = isct.value;
 		  if (isct.key.equals("DTEND"))  dtEnd = isct.value;
-		  if (isct.key.equals("DESCRIPTION"))  description = isct.value;
+		  if (isct.key.equals("DESCRIPTION"))  description = isct.value.replace("\\r\\n", "\r\n");
 		  if (isct.key.equals("LOCATION"))  location = isct.value;
 		  if (isct.key.equals("SUMMARY"))  summary = isct.value;
 
