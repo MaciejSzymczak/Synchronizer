@@ -361,8 +361,13 @@ import java.util.zip.CRC32;
 				} catch (Exception e) {}
 				if ((calendarId+"").length()==0) 
 					calendarId= "***Calendar not found***";
-				fw.write(String.format("%s{ calendarName: '%s', link: 'https://calendar.google.com/calendar/ical/%s/public/basic.ics', calendarId: '%s' }", separator, calName, calendarId, calendarId ));
-				separator=",";
+				
+				if (calendarId.equals("***Calendar not found***")) {
+				  System.out.println( String.format("Calendar has been deleted in Google: %s...",calName));		  
+				} else {
+				  fw.write(String.format("%s{ calendarName: '%s', link: 'https://calendar.google.com/calendar/ical/%s/public/basic.ics', calendarId: '%s' }", separator, calName, calendarId, calendarId ));
+				  separator=",";
+				}
 				}		  
 		  fw.write("];");
 		  fw.close();		  
