@@ -348,11 +348,14 @@ import java.util.zip.CRC32;
 
 	  private static void tableofContents(ReadDirectory ics, String fileName) throws IOException {
 		  FileWriter fw = new FileWriter(fileName);
+		  FileWriter fwErrors = new FileWriter(fileName+".err");
 		  
 		  System.out.println( String.format("Creating file %s...",fileName));		  
 
 		  String separator = "";
+		  String separatore = "";
 		  fw.write("var data = [\n");
+		  fwErrors.write("var data = [\n");
 		  for(Object entry: ics.calendars.keySet()) {
 				String calName = (String)entry;
 				String calendarId= "*** Calendar not found ***";
@@ -360,10 +363,12 @@ import java.util.zip.CRC32;
 					calendarId = ((CalendarItem)googleCalendars.get(calName)).calendarId;
 				} catch (Exception e) {}
 				if ((calendarId+"").length()==0) 
-					calendarId= "***Calendar not found***";
+					calendarId= "*** Calendar not found ***";
 				
-				if (calendarId.equals("***Calendar not found***")) {
+				if (calendarId.equals("*** Calendar not found ***")) {
 				  System.out.println( String.format("Calendar has been deleted in Google: %s...",calName));		  
+				  fwErrors.write(String.format("%s{ calendarName: '%s', link: 'https://calendar.google.com/calendar/ical/%s/public/basic.ics', calendarId: '%s' }", separatore, calName, calendarId, calendarId ));
+				  separatore=",";
 				} else {
 				  fw.write(String.format("%s{ calendarName: '%s', link: 'https://calendar.google.com/calendar/ical/%s/public/basic.ics', calendarId: '%s' }", separator, calName, calendarId, calendarId ));
 				  separator=",";
@@ -371,6 +376,8 @@ import java.util.zip.CRC32;
 				}		  
 		  fw.write("];");
 		  fw.close();		  
+		  fwErrors.write("];");
+		  fwErrors.close();		  
 	  }
 	  
 	  
