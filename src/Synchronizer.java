@@ -100,7 +100,7 @@ import java.util.zip.CRC32;
 	    	System.out.println( System.getProperty("user.home") );
 
 	    	
-	    	System.out.println("Cello, ver 2019.04.12");
+	    	System.out.println("Cello, ver 2019.04.13");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
 	    	
     		System.out.println("Parameter count "+args.length );	    			    	
