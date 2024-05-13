@@ -98,10 +98,10 @@ import java.util.zip.CRC32;
 	    try {
 	    	
 	    	System.out.println( System.getProperty("user.home") );
-
 	    	
 	    	System.out.println("Cello, ver 2024.05.12");
 	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
+	    	//https://developers.google.com/calendar/api/quickstart/java?hl=pl
 	    	
     		System.out.println("Parameter count "+args.length );	    			    	
 	    	for (int i = 0; i < args.length; i++) { 
@@ -111,11 +111,13 @@ import java.util.zip.CRC32;
             String client_secrets = "";
 	    	String actionName = "";
 	    	String folderName = "";
-	    		    	
+	    	//if this parameter is true, the calendar is publictly visible (read only) 
+	    	Boolean makeCalendarPublic = false;	    		    	
 
 	    	if (args.length==0) {
-	    		System.out.println("Usage: java cello.jar uploadIcs json folderName");
+	    		System.out.println("Usage: java cello.jar uploadIcs json folderName scope:private");
 	    		System.out.println("   or  java cello.jar deleteCalendars json ");
+	    		//System.out.println("   or  java cello.jar makePrivate json ");
 	    		System.out.println("   or  java cello.jar status folderName");
 	    		System.exit(1);
 	    	}
@@ -124,8 +126,15 @@ import java.util.zip.CRC32;
 	    	if (actionName.equals("uploadIcs") || actionName.equals("deleteCalendars") || actionName.equals("readGoogleCalendars") ) 
 		    	client_secrets = args[1];
 
-	    	if (actionName.equals("uploadIcs"))
+	    	if (actionName.equals("uploadIcs")) {
 	        	folderName = args[2];
+	        	if (args.length>3) {
+	        		//default = public access
+	        		//reader = read only access
+	        		makeCalendarPublic = args[3]=="scope:public";
+	        	}
+	        		
+	    	}
 
 	    	if (actionName.equals("status"))
 	        	folderName = args[1];
@@ -181,7 +190,7 @@ import java.util.zip.CRC32;
 			ics.readOneIcsFilesFromFolder( new File(folderName) );
 			
 			//this procedure also gets GoogleEvents
-			AddGoogleCalendars(ics);
+			AddGoogleCalendars(ics, makeCalendarPublic);
 			
 			//for each icsClass: no googleEvent found ==> insert	
 			System.out.println("Inserting events...");
@@ -301,7 +310,7 @@ import java.util.zip.CRC32;
 		    //System.out.println("*** after loop");
 	  }
 	  
-	  private static void AddGoogleCalendars(ReadDirectory ics) throws IOException {
+	  private static void AddGoogleCalendars(ReadDirectory ics, Boolean makeCalendarPublic) throws IOException {
 		  System.out.println("Addding calendars...");	
 		  for(Object entry: ics.calendars.keySet()) {
 				String calName = (String)entry;
@@ -330,12 +339,20 @@ import java.util.zip.CRC32;
 				    newEntry.setTimeZone(  ((CalendarItem)ics.calendars.get(calName)).TzId  ); 
 				   //client.acl().insert(calendarId, content)
 				    Calendar result = client.calendars().insert(newEntry).execute();
+				    
 				    //make the calendar public
-				    AclRule rule = new AclRule();
-				    Scope scope = new Scope();
-				    scope.setType("default");
-				    rule.setScope(scope).setRole("reader");
-				    client.acl().insert(result.getId(), rule).execute();
+				    if (makeCalendarPublic) {
+					    AclRule rule = new AclRule();
+					    Scope scope = new Scope();
+					    //"default" - The public scope (authenticated or not)
+					    //"user" - Limits the scope to a single user.
+					    //"group" - Limits the scope to a group.
+					    //"domain" - Limits the scope to a domain.
+					    scope.setType("default");
+					    // none,freeBusyReader, reader, writer, owner
+					    rule.setScope(scope).setRole("reader");
+					    client.acl().insert(result.getId(), rule).execute();
+				    }
 				    
 					CalendarItem ci = new CalendarItem();
 					ci.calendarId = result.getId();
