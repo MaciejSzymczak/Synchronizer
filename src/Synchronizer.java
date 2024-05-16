@@ -15,7 +15,8 @@
 	import com.google.api.client.util.Lists;
 	import com.google.api.client.util.store.DataStoreFactory;
 	import com.google.api.client.util.store.FileDataStoreFactory;
-	import com.google.api.services.calendar.CalendarScopes;
+import com.google.api.services.calendar.Calendar.Acl;
+import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.AclRule;
 import com.google.api.services.calendar.model.AclRule.Scope;
 import com.google.api.services.calendar.model.Calendar;
@@ -94,161 +95,6 @@ import java.util.zip.CRC32;
 	    return new AuthorizationCodeInstalledApp(flow, lsr).authorize("user"); 
 	  }
 
-	  public static void main(String[] args) {
-	    try {
-	    	
-	    	System.out.println( System.getProperty("user.home") );
-	    	
-	    	System.out.println("Cello, ver 2024.05.12");
-	    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
-	    	//https://developers.google.com/calendar/api/quickstart/java?hl=pl
-	    	
-    		System.out.println("Parameter count "+args.length );	    			    	
-	    	for (int i = 0; i < args.length; i++) { 
-	    		System.out.println("Parameter "+i+" is "+ args[i] );	    		
-	    	}
-	    	
-            String client_secrets = "";
-	    	String actionName = "";
-	    	String folderName = "";
-	    	//if this parameter is true, the calendar is publictly visible (read only) 
-	    	Boolean makeCalendarPublic = false;	    		    	
-
-	    	if (args.length==0) {
-	    		System.out.println("Usage: java cello.jar uploadIcs json folderName scope:private");
-	    		System.out.println("   or  java cello.jar deleteCalendars json ");
-	    		//System.out.println("   or  java cello.jar makePrivate json ");
-	    		System.out.println("   or  java cello.jar status folderName");
-	    		System.exit(1);
-	    	}
-	    	actionName = args[0];
-
-	    	if (actionName.equals("uploadIcs") || actionName.equals("deleteCalendars") || actionName.equals("readGoogleCalendars") ) 
-		    	client_secrets = args[1];
-
-	    	if (actionName.equals("uploadIcs")) {
-	        	folderName = args[2];
-	        	if (args.length>3) {
-	        		//default = public access
-	        		//reader = read only access
-	        		makeCalendarPublic = args[3]=="scope:public";
-	        	}
-	        		
-	    	}
-
-	    	if (actionName.equals("status"))
-	        	folderName = args[1];
-
-	    	
-			if (actionName.equals("status")) {
-				System.out.println("Preparing Status");
-				Status s = new Status();
-				s.ReadFolderTree( new File(folderName) );
-				s.Display(folderName+"\\status.xml");
-				System.out.println("Done");
-				System.exit(0);
-			} 	
-	    	
-			//create subfolder processed
-			File folder = new File(folderName+"\\processed");
-			if(!folder.exists()) if(folder.mkdir());
-
-			//Login to Google cloud
-			httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-			
-			//set DATA_STORE_DIR = name of the json file
-			int index = client_secrets.lastIndexOf("\\");
-			String storageFolderName = client_secrets.substring(index+1, client_secrets.lastIndexOf("."));			
-			System.out.println("DATA_STORE_DIR=" + System.getProperty("user.home")+ ".store/" + storageFolderName);			
-			DATA_STORE_DIR = new java.io.File(System.getProperty("user.home"), ".store/" + storageFolderName );
-
-			dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
-			Credential credential = authorize(client_secrets);
-			client = new com.google.api.services.calendar.Calendar.Builder(
-			    httpTransport, JSON_FACTORY, credential).setApplicationName(APPLICATION_NAME).build();
-			System.out.println("Login succeed");
-			
-			if (actionName.equals("deleteCalendars")) {
-				System.out.println("Delete Google Calendars");
-				deleteGoogleCalendars();
-				System.out.println("Done");
-				System.exit(0);
-			}
-			
-			//tests
-			if (actionName.equals("readGoogleCalendars")) {
-				readGoogleCalendars();
-				System.out.println("Done");
-				System.exit(0);
-			}
-
-			readGoogleCalendars();
-			
-		    //Read Ics calendars
-			System.out.println("Loading ics calendars...");
-			ReadDirectory ics = new ReadDirectory(folderName);				
-			ics.readOneIcsFilesFromFolder( new File(folderName) );
-			
-			//this procedure also gets GoogleEvents
-			AddGoogleCalendars(ics, makeCalendarPublic);
-			
-			//for each icsClass: no googleEvent found ==> insert	
-			System.out.println("Inserting events...");
-			for(Object entry: ics.calendars.keySet()) {
-				String calName = (String)entry;
-				CalendarItem icsCalendar = (CalendarItem)ics.calendars.get(calName);
-				for(Object o: icsCalendar.classItems.values()) {
-					ClassItem icsClass = (ClassItem)o;					
-					//no Event found ==> insert	
-					CalendarItem googleCalendar = (CalendarItem)googleCalendars.get(calName);
-					if (!(googleCalendar).classItems.containsKey(icsClass.key)) {
-						System.out.println("    Inserting Event ["+calName+"] "+icsClass.key);
-						createGoogleEvent(googleCalendar.calendarId, icsClass);
-					}
-				}
-			}	
-						
-			//	for each googleEvent: no icsItem found => delete
-			System.out.println("Deleting events...");
-			for(Object entry: googleCalendars.keySet()) {
-				String calName = (String)entry;
-				CalendarItem googleCalendar = (CalendarItem)googleCalendars.get(calName);
-				for(Object o: googleCalendar.classItems.values()) {
-					ClassItem googleClass = (ClassItem)o;
-					//no Event found ==> delete	
-					CalendarItem icsCalendar = (CalendarItem)ics.calendars.get(calName);
-					if (!(icsCalendar).classItems.containsKey(googleClass.key)) {
-						System.out.println("    Deleting Event ["+calName+"] "+googleClass.key);
-						client.events().delete(googleCalendar.calendarId, googleClass.eventId).execute();
-					}
-				}
-			}
-						
-			//move processed file to folder processed
-			if (ics.currentFileName != null) {
-				File afile =new File(folderName +  "\\" + ics.currentFileName);
-				File processedFile = new File(folderName +  "\\processed\\" + ics.currentFileName);
-				if (processedFile.exists()) { processedFile.delete(); } 
-		    	afile.renameTo(new File(folderName +  "\\processed\\" + ics.currentFileName));			
-			    System.out.println("File processed:" + ics.currentFileName);
-			    
-			} else {
-			    System.out.println("No files to process");					
-			}
-			
-			
-			ReadDirectory icsProcessed = new ReadDirectory(folderName+  "\\processed");				
-			icsProcessed.readIcsFilesFromFolder( new File(folderName+  "\\processed") );			
-			tableofContents(icsProcessed, folderName+"\\ListOfCalendars.js");
-			
-	    //} catch (IOException e) {
-	    //  System.err.println(e.getMessage());
-	    } catch (Throwable t) {
-	      t.printStackTrace();
-	    }
-	    System.out.println("Done");	
-	    System.exit(1);
-	  }
 	  
 	  private static EventDateTime ISOStringToEventDateTime (String ISOString) throws ParseException {
 			DateFormat df = new SimpleDateFormat("yyyyMMdd HHmm");
@@ -269,17 +115,47 @@ import java.util.zip.CRC32;
 		    client.events().insert(calendarId, event).execute();
 	  }
 	  
-	  private static void deleteGoogleCalendars() throws IOException {
-		    CalendarList feed = client.calendarList().list().execute();
-		    if (feed.getItems() != null) {
-		        for (CalendarListEntry entry : feed.getItems()) {
-		          if ((entry.getDescription()+"").toLowerCase().contains("plansoft.org".toLowerCase())) {
-			         System.out.println("Delete calendar " + entry.getSummary() );
-		        	 client.calendars().delete(entry.getId()).execute();
-		          }
-		        }
-		      }		    		  
+
+	  private static void listGoogleCalendarsAndACLs(Boolean removePublicAccess) throws IOException  {
+   		  
+		    CalendarList feed = client.calendarList().list().setMaxResults(250).execute();
+		    Boolean inLoop = true;
+		    
+		    //System.out.println("*** before loop");
+		    while (inLoop) {
+			    if (feed.getItems() != null) {
+			        for (CalendarListEntry entry : feed.getItems()) {
+			        	if ((entry.getDescription()+"").toLowerCase().contains("plansoft.org".toLowerCase())) {
+					          System.out.println( "Calendar: " + entry.getSummary());
+					          System.out.println( "Calendar id: " + entry.getId());
+					          com.google.api.services.calendar.model.Acl acl = client.acl().list(entry.getId()).execute();
+					          for (AclRule rule : acl.getItems()) {
+					        	  System.out.println("   Rule:"+rule.getId());
+						          if (rule.getId().equalsIgnoreCase("default")  && removePublicAccess) {
+						        	  client.acl().delete(entry.getId(), "default").execute();
+						        	  System.out.println("   *** Public access removed");
+						          }					        	  
+					          }	
+							  CalendarItem ci = new CalendarItem();
+							  ci.calendarId = entry.getId();
+					          googleCalendars.put(entry.getSummary(), ci);
+			        	}
+			        }
+			      }	
+			    
+			    System.out.println("feed.getNextPageToken:" + feed.getNextPageToken() );			    
+			    if (feed.getNextPageToken() !=null) {
+			    	feed = client.calendarList().list().setPageToken(feed.getNextPageToken()).setMaxResults(250).execute();
+				    inLoop = true;
+			    } else {
+			    	inLoop = false;
+			    }
+			//try {Thread.sleep(4000);} catch (InterruptedException e) {}    
+		    }
+		    //System.out.println("*** after loop");
 	  }
+	  
+	  
 
 	  private static void readGoogleCalendars() throws IOException  {
 		    
@@ -291,10 +167,12 @@ import java.util.zip.CRC32;
 		    while (inLoop) {
 			    if (feed.getItems() != null) {
 			        for (CalendarListEntry entry : feed.getItems()) {
-			          //System.out.println( "Calendar: " + entry.getSummary());
-					  CalendarItem ci = new CalendarItem();
-					  ci.calendarId = entry.getId();
-			          googleCalendars.put(entry.getSummary(), ci);
+			        	if ((entry.getDescription()+"").toLowerCase().contains("plansoft.org".toLowerCase())) {
+					          //System.out.println( "Calendar: " + entry.getSummary());
+							  CalendarItem ci = new CalendarItem();
+							  ci.calendarId = entry.getId();
+					          googleCalendars.put(entry.getSummary(), ci);
+			        	}
 			        }
 			      }	
 			    
@@ -438,7 +316,18 @@ import java.util.zip.CRC32;
 		  }
 		  */		  
 		  	  
-
+	  private static void deleteGoogleCalendars() throws IOException {
+		    //compare how it was made in readGoogleCalendars()
+		    CalendarList feed = client.calendarList().list().execute();
+		    if (feed.getItems() != null) {
+		        for (CalendarListEntry entry : feed.getItems()) {
+		          if ((entry.getDescription()+"").toLowerCase().contains("plansoft.org".toLowerCase())) {
+			         System.out.println("Delete calendar " + entry.getSummary() );
+		        	 client.calendars().delete(entry.getId()).execute();
+		          }
+		        }
+		      }		    		  
+	  }
 	  
 		private static String getComputerName()
 		{
@@ -452,4 +341,183 @@ import java.util.zip.CRC32;
 		}	  
 	  
 	  
+		  public static void main(String[] args) {
+			    try {
+			    	
+			    	System.out.println( System.getProperty("user.home") );
+			    	
+			    	System.out.println("Cello, ver 2024.05.12");
+			    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
+			    	//https://developers.google.com/calendar/api/quickstart/java?hl=pl
+			    	
+		    		System.out.println("Parameter count "+args.length );	    			    	
+			    	for (int i = 0; i < args.length; i++) { 
+			    		System.out.println("Parameter "+i+" is "+ args[i] );	    		
+			    	}
+			    	
+		            String client_secrets = "";
+			    	String actionName = "";
+			    	String folderName = "";
+			    	//if this parameter is true, the calendar is publictly visible (read only) 
+			    	Boolean makeCalendarPublic = false;	    		    	
+
+			    	if (args.length==0) {
+			    		System.out.println("Usage: java cello.jar uploadIcs json folderName scope:private");
+			    		System.out.println("   or  java cello.jar deleteCalendars json ");
+			    		System.out.println("   or  java cello.jar listGoogleCalendarsAndACLs json ");
+			    		System.out.println("   or  java cello.jar removePublicAccess json ");
+			    		System.out.println("   or  java cello.jar status folderName");
+			    		System.exit(1);
+			    	}
+			    	actionName = args[0];
+			    	
+			    	if (actionName.equals("uploadIcs") 
+			    			|| actionName.equals("deleteCalendars") 
+			    			|| actionName.equals("readGoogleCalendars") 
+			    	    	|| actionName.equals("listGoogleCalendarsAndACLs")
+			    	    	|| actionName.equals("removePublicAccess")
+			    			) 
+				    	client_secrets = args[1];
+
+			    	if (actionName.equals("uploadIcs")) {
+			        	folderName = args[2];
+			        	if (args.length>3) {
+			        		//default = public access
+			        		//reader = read only access
+			        		makeCalendarPublic = args[3]=="scope:public";
+			        	}
+			        		
+			    	}
+
+			    	if (actionName.equals("status"))
+			        	folderName = args[1];
+
+			    	
+					if (actionName.equals("status")) {
+						System.out.println("Preparing Status");
+						Status s = new Status();
+						s.ReadFolderTree( new File(folderName) );
+						s.Display(folderName+"\\status.xml");
+						System.out.println("Done");
+						System.exit(0);
+					} 	
+			    	
+					//create subfolder processed
+					File folder = new File(folderName+"\\processed");
+					if(!folder.exists()) if(folder.mkdir());
+
+					//Login to Google cloud
+					httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+					
+					//set DATA_STORE_DIR = name of the json file
+					int index = client_secrets.lastIndexOf("\\");
+					String storageFolderName = client_secrets.substring(index+1, client_secrets.lastIndexOf("."));			
+					System.out.println("DATA_STORE_DIR=" + System.getProperty("user.home")+ ".store/" + storageFolderName);			
+					DATA_STORE_DIR = new java.io.File(System.getProperty("user.home"), ".store/" + storageFolderName );
+
+					dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
+					Credential credential = authorize(client_secrets);
+					client = new com.google.api.services.calendar.Calendar.Builder(
+					    httpTransport, JSON_FACTORY, credential).setApplicationName(APPLICATION_NAME).build();
+					System.out.println("Login succeed");
+					
+					if (actionName.equals("deleteCalendars")) {
+						System.out.println("Delete Google Calendars");
+						deleteGoogleCalendars();
+						System.out.println("Done");
+						System.exit(0);
+					}
+					
+					if (actionName.equals("listGoogleCalendarsAndACLs")) {
+						System.out.println("list Google Calendars with ACLs");
+						listGoogleCalendarsAndACLs(false);
+						System.out.println("Done");
+						System.exit(0);
+					}
+					
+					if (actionName.equals("removePublicAccess")) {
+						System.out.println("Remove Public Access");
+						listGoogleCalendarsAndACLs(true);
+						System.out.println("Done");
+						System.exit(0);
+					}
+					
+								
+					
+					//tests
+					if (actionName.equals("readGoogleCalendars")) {
+						readGoogleCalendars();
+						System.out.println("Done");
+						System.exit(0);
+					}
+
+					readGoogleCalendars();
+					
+				    //Read Ics calendars
+					System.out.println("Loading ics calendars...");
+					ReadDirectory ics = new ReadDirectory(folderName);				
+					ics.readOneIcsFilesFromFolder( new File(folderName) );
+					
+					//this procedure also gets GoogleEvents
+					AddGoogleCalendars(ics, makeCalendarPublic);
+					
+					//for each icsClass: no googleEvent found ==> insert	
+					System.out.println("Inserting events...");
+					for(Object entry: ics.calendars.keySet()) {
+						String calName = (String)entry;
+						CalendarItem icsCalendar = (CalendarItem)ics.calendars.get(calName);
+						for(Object o: icsCalendar.classItems.values()) {
+							ClassItem icsClass = (ClassItem)o;					
+							//no Event found ==> insert	
+							CalendarItem googleCalendar = (CalendarItem)googleCalendars.get(calName);
+							if (!(googleCalendar).classItems.containsKey(icsClass.key)) {
+								System.out.println("    Inserting Event ["+calName+"] "+icsClass.key);
+								createGoogleEvent(googleCalendar.calendarId, icsClass);
+							}
+						}
+					}	
+								
+					//	for each googleEvent: no icsItem found => delete
+					System.out.println("Deleting events...");
+					for(Object entry: googleCalendars.keySet()) {
+						String calName = (String)entry;
+						CalendarItem googleCalendar = (CalendarItem)googleCalendars.get(calName);
+						for(Object o: googleCalendar.classItems.values()) {
+							ClassItem googleClass = (ClassItem)o;
+							//no Event found ==> delete	
+							CalendarItem icsCalendar = (CalendarItem)ics.calendars.get(calName);
+							if (!(icsCalendar).classItems.containsKey(googleClass.key)) {
+								System.out.println("    Deleting Event ["+calName+"] "+googleClass.key);
+								client.events().delete(googleCalendar.calendarId, googleClass.eventId).execute();
+							}
+						}
+					}
+								
+					//move processed file to folder processed
+					if (ics.currentFileName != null) {
+						File afile =new File(folderName +  "\\" + ics.currentFileName);
+						File processedFile = new File(folderName +  "\\processed\\" + ics.currentFileName);
+						if (processedFile.exists()) { processedFile.delete(); } 
+				    	afile.renameTo(new File(folderName +  "\\processed\\" + ics.currentFileName));			
+					    System.out.println("File processed:" + ics.currentFileName);
+					    
+					} else {
+					    System.out.println("No files to process");					
+					}
+					
+					
+					ReadDirectory icsProcessed = new ReadDirectory(folderName+  "\\processed");				
+					icsProcessed.readIcsFilesFromFolder( new File(folderName+  "\\processed") );			
+					tableofContents(icsProcessed, folderName+"\\ListOfCalendars.js");
+					
+			    //} catch (IOException e) {
+			    //  System.err.println(e.getMessage());
+			    } catch (Throwable t) {
+			      t.printStackTrace();
+			    }
+			    System.out.println("Done");	
+			    System.exit(1);
+			  }
+		
+		
 	}
