@@ -283,7 +283,7 @@ import java.nio.charset.StandardCharsets;
 		  for(Object entry: ics.calendars.keySet()) {
 				String calName = (String)entry;
 				//Do not publish calendars of lecturers
-				if ( calName.contains("Wykładowca") ) continue;
+				//if ( calName.contains("Wykładowca") ) continue;
 				String calendarId= "*** Calendar not found ***";
 				try {
 					calendarId = ((CalendarItem)googleCalendars.get(calName)).calendarId;
