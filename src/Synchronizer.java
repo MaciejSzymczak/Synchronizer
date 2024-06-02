@@ -3,19 +3,13 @@
 	import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 	import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 	import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-	import com.google.api.client.googleapis.batch.BatchRequest;
-	import com.google.api.client.googleapis.batch.json.JsonBatchCallback;
 	import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-	import com.google.api.client.googleapis.json.GoogleJsonError;
-	import com.google.api.client.http.HttpHeaders;
 	import com.google.api.client.http.HttpTransport;
 	import com.google.api.client.json.JsonFactory;
 	import com.google.api.client.json.jackson2.JacksonFactory;
 	import com.google.api.client.util.DateTime;
 	import com.google.api.client.util.Lists;
-	import com.google.api.client.util.store.DataStoreFactory;
 	import com.google.api.client.util.store.FileDataStoreFactory;
-import com.google.api.services.calendar.Calendar.Acl;
 import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.AclRule;
 import com.google.api.services.calendar.model.AclRule.Scope;
@@ -41,7 +35,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.zip.CRC32;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Main class of the project. This class uploads ICS files from given folder into Google Calendar
@@ -115,7 +110,35 @@ import java.util.zip.CRC32;
 		    client.events().insert(calendarId, event).execute();
 	  }
 	  
+	    private static String generateShareableLink(String cid) {
+	        return "https://calendar.google.com/calendar/u/0?cid=" + cid;
+	    }	  
+	  
+	    private static String encodeCalendarId(String calendarId) {
+	        return Base64.getUrlEncoder().encodeToString(calendarId.getBytes(StandardCharsets.UTF_8));
+	    }	  
 
+	    
+	    private static void addUserToCalendarAcl(String calendarId, String userEmail) throws IOException {
+	        // Create a new ACL rule for the specific user
+	        AclRule rule = new AclRule();
+	        Scope scope = new Scope();
+	        scope.setType("user"); // Specify the scope type as 'user'
+	        scope.setValue(userEmail); // Set the user's email
+	        rule.setScope(scope);
+	        rule.setRole("reader"); // Set the role, e.g., 'reader', 'writer', 'owner'
+
+	        // Insert the new ACL rule
+	        client.acl().insert(calendarId, rule).execute();
+	        System.out.println("User " + userEmail + " added to the calendar with read access.");
+	    }	    
+
+	    private static void removePublicAccess(String calendarId) throws IOException {
+      	  client.acl().delete(calendarId, "default").execute();
+      	  System.out.println("   *** Public access removed");
+	    }	    
+	    
+	    
 	  private static void listGoogleCalendarsAndACLs(Boolean removePublicAccess) throws IOException  {
    		  
 		    CalendarList feed = client.calendarList().list().setMaxResults(250).execute();
@@ -128,14 +151,20 @@ import java.util.zip.CRC32;
 			        	if ((entry.getDescription()+"").toLowerCase().contains("plansoft.org".toLowerCase())) {
 					          System.out.println( "Calendar: " + entry.getSummary());
 					          System.out.println( "Calendar id: " + entry.getId());
+					          //link for subscription (it seems this is working only with the public access):
+					          System.out.println( "Subscription: https://calendar.google.com/calendar/ical/"+entry.getId()+"/public/basic.ics");
+					          //link to view cal in web browser
+					          System.out.println( "Embeded: https://calendar.google.com/calendar/u/0/embed?src="+entry.getId()+"&ctz=Europe/Warsaw" + entry.getId());
+					          System.out.println( "Shareable link: " + generateShareableLink(encodeCalendarId(entry.getId())));
 					          com.google.api.services.calendar.model.Acl acl = client.acl().list(entry.getId()).execute();
 					          for (AclRule rule : acl.getItems()) {
 					        	  System.out.println("   Rule:"+rule.getId());
 						          if (rule.getId().equalsIgnoreCase("default")  && removePublicAccess) {
-						        	  client.acl().delete(entry.getId(), "default").execute();
-						        	  System.out.println("   *** Public access removed");
-						          }					        	  
+						        	  removePublicAccess (entry.getId());
+						          }
 					          }	
+					          //tested, working fine!
+					          //addUserToCalendarAcl(entry.getId(), "soft@home.pl");
 							  CalendarItem ci = new CalendarItem();
 							  ci.calendarId = entry.getId();
 					          googleCalendars.put(entry.getSummary(), ci);
