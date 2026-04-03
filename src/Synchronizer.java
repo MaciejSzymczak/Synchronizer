@@ -375,7 +375,7 @@ import java.nio.charset.StandardCharsets;
 			    	
 			    	System.out.println( System.getProperty("user.home") );
 			    	
-			    	System.out.println("Cello, ver 2024.05.12");
+			    	System.out.println("Cello, ver 2026.04.03");
 			    	System.out.println("Software Factory Maciej Szymczak, All Rights reserved");
 			    	//https://developers.google.com/calendar/api/quickstart/java?hl=pl
 			    	
@@ -391,7 +391,7 @@ import java.nio.charset.StandardCharsets;
 			    	Boolean makeCalendarPublic = false;	    		    	
 
 			    	if (args.length==0) {
-			    		System.out.println("Usage: java cello.jar uploadIcs json folderName scope:private");
+			    		System.out.println("Usage: java cello.jar uploadIcs json folderName scope:private|scope:public");
 			    		System.out.println("   or  java cello.jar deleteCalendars json ");
 			    		System.out.println("   or  java cello.jar listGoogleCalendarsAndACLs json ");
 			    		System.out.println("   or  java cello.jar removePublicAccess json ");
