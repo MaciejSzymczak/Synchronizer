@@ -79,15 +79,18 @@ public class ReadDirectory {
 	}
 	
 	public static long checksumInputStream(String filepath) throws IOException {
-		InputStream inputStreamn = new FileInputStream(filepath);
-		CRC32 crc = new CRC32();
-		int cnt;
-		while ((cnt = inputStreamn.read()) != -1) {
-			crc.update(cnt);
-		}
-		inputStreamn.close();
-		return crc.getValue();
-	}	
+	    try (InputStream inputStream = new FileInputStream(filepath)) {
+	        CRC32 crc = new CRC32();
+	        byte[] buffer = new byte[8192]; // 8 KB bufor
+	        int bytesRead;
+
+	        while ((bytesRead = inputStream.read(buffer)) != -1) {
+	            crc.update(buffer, 0, bytesRead);
+	        }
+
+	        return crc.getValue();
+	    }
+	}
 	
 	public void readOneIcsFilesFromFolder(final File folder) throws IOException {
         System.out.println("    Deleting files already processed");
