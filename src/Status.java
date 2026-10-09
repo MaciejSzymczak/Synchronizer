@@ -1,6 +1,9 @@
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -65,9 +68,42 @@ public class Status {
 		fw.write("</data>");
 		fw.write("<who lastupdatetext=\"Aktualizacja: "+DateFormat.getDateInstance().format(new Date())+"\"></who>");
 		fw.write("</xml>");
-		fw.close();		
-		
-		
+		fw.close();
+
+
+	}
+
+	// status.xml is rendered by layout.xslt, but browsers are phasing XSLT out.
+	// status.html contains the same layout as layout.xslt produces, rendered directly (no transformation needed).
+	public void DisplayHtml(String fileName) throws IOException {
+		String title = "Status publikacji rozkładów zajęć";
+		Writer fw = new OutputStreamWriter(new FileOutputStream(fileName), "UTF-8");
+		fw.write("<!DOCTYPE html>\r\n");
+		fw.write("<html>\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<title>"+title+"</title>\r\n</head>\r\n");
+		fw.write("<body style=\"font-variant: small-caps; text-align: center; background-color: #eeeeee;\">\r\n");
+		fw.write("<h1 style=\"font-variant: small-caps; text-align: center; color: white; background-color: black;\">"+title+"</h1>\r\n");
+		fw.write("<center>\r\n");
+		fw.write("<table border=\"1\" width=\"30%\" style=\"font-variant: small-caps; border: 0px dashed black\">\r\n");
+		fw.write("<tr style=\"background-color: silver\"><td><center>Folder</center></td><td><center>Processed</center></td><td><center>Not Processed</center></td><td><center>Status</center></td></tr>\r\n");
+		for ( Object k : folders.keySet()) {
+			int p = ((Cnt) folders.get(k)).getProcessedCnt();
+			int np = ((Cnt) folders.get(k)).getNotProcessedCnt();
+			fw.write("<tr valign=\"top\" style=\"border: 1px dashed silver\">"
+					+"<td><center>"+escapeHtml(k.toString())+"</center></td>"
+					+"<td><center>"+p+"</center></td>"
+					+"<td><center>"+np+"</center></td>"
+					+"<td><center><img src=\""+(np==0?"check.png":"gear_refresh.png")+"\"/></center></td>"
+					+"</tr>\r\n");
+		}
+		fw.write("</table>\r\n");
+		fw.write("</center>\r\n");
+		fw.write("<br/><small>Aktualizacja: "+DateFormat.getDateInstance().format(new Date())+"</small>\r\n");
+		fw.write("</body>\r\n</html>\r\n");
+		fw.close();
+	}
+
+	private static String escapeHtml(String s) {
+		return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
 	}
 
 }

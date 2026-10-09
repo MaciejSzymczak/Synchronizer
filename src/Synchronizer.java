@@ -427,6 +427,7 @@ import java.nio.charset.StandardCharsets;
 						Status s = new Status();
 						s.ReadFolderTree( new File(folderName) );
 						s.Display(folderName+"\\status.xml");
+						s.DisplayHtml(folderName+"\\status.html");
 						System.out.println("Done");
 						System.exit(0);
 					} 	
